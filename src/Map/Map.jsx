@@ -4,7 +4,8 @@ import L from 'leaflet'
 import HereTileLayers from './hereTileLayers'
 import { doUpdateBoundingBox } from '../actions/actions'
 import { connect } from 'react-redux'
-
+import { makeClusterObjects, prepareGeojson, computeDbScan } from './utils'
+import { concave, polygon, multiPoint, featureCollection } from '@turf/turf'
 
 // Define the container styles the map sits in:
 const style = {
@@ -87,12 +88,69 @@ class Map extends Component {
         dispatch(doUpdateBoundingBox(this.map.getBounds()))
     }
 
+    // When the state changes:
     componentDidUpdate(prevProps) {
-        const { lastCall } = this.props
+        const { lastCall, lastCompute, dbscanSettings } = this.props
         // Is the epoche timestamp later?
         if (lastCall > prevProps.lastCall) {
             // If so, then start adding places to the map:
             this.addPlaces()
+        }
+        if (lastCompute > prevProps.lastCompute) {
+            clusterLayer.clearLayers()
+            const clusters = computeDbScan(placesLayer.toGeoJSON(), dbscanSettings)
+            this.processClusters(clusters)
+        }
+    }
+
+    processClusters(clusterData) {
+        // Postprocessing of clusters, happensin utils.js:
+        const clustersNoiseEdges = makeClusterObjects(clusterData)
+
+        // Looping through the processed clusters, we either have to 
+        // computer the concave hull for clusters greater than 3 points.
+        // For Clusters with 3 points we create polygons and
+        // for anything less we want to display them as Multipoints:
+        for (const clusterObj in clustersNoiseEdges) {
+            const clusterSize = clustersNoiseEdges[clusterObj].length
+            let geojson
+            if (clusterObj !== 'noise' && clusterObj !== 'edge') {
+                switch (true) {
+                    case clusterSize <= 2: {
+                        geojson = multiPoint(
+                            featureCollection(clustersNoiseEdges[clusterObj]),
+                            {
+                                type: 'cluster'
+                            }
+                        )
+                        break
+                    }
+                    case clusterSize === 3: {
+                        geojson = polygon(
+                            featureCollection(clustersNoiseEdges[clusterObj]),
+                            {
+                                type: 'cluster'
+                            }
+                        )
+                        break
+                    }
+                    case clusterSize > 3: {
+                        geojson = concave(featureCollection(clustersNoiseEdges[clusterObj]))
+                        geojson.properties.type = 'cluster'
+
+                        break
+                    }
+                }
+            } else {
+                geojson = multiPoint(clustersNoiseEdges[clusterObj], {
+                    type: clusterObj
+                })
+            }
+
+            // This is the last utils function we use to create
+            // the Leaflet GeoJSON classes and add them directly
+            // to the map:
+            prepareGeojson(geojson, clusterSize, clusterObj).addTo(clusterLayer)
         }
     }
 
