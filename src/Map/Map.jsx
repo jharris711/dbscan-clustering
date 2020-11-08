@@ -11,8 +11,8 @@ const style = {
 
 // Use the reduced.day map style:
 const hereReducedDay = HereTileLayers.here({
-    appId: process.env.APP_ID,
-    appCode: process.env.APP_CODE,
+    appId: 'jKco7gLGf0WWlvS5n2fl',
+    appCode: 'HQnCztY23zh2xiTPCFiTMA',
     scheme: 'reduced.day'
 })
 
@@ -26,7 +26,7 @@ const clusterLayer = L.featureGroup()
 const mapParams = {
     center: [40.7569, -73.9837],
     zoomControl: false,
-    maxBounds: L.latLngBounds(L.latLng(-90, -180), L.latLng(-90, -180)),
+    maxBounds: L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180)),
     zoom: 13,
     layers: [placesLayer, clusterLayer, hereReducedDay], 
 }
