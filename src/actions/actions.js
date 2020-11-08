@@ -5,6 +5,25 @@ const hereAppId = 'jKco7gLGf0WWlvS5n2fl'
 export const RECEIVE_PLACES_RESULTS = 'RECEIVE_PLACES_RESULTS'
 export const REQUEST_PLACES_RESULTS = 'REQUEST_PLACES_RESULTS'
 export const CLEAR = 'CLEAR'
+export const UPDATE_BBOX = 'UPDATE_BBOX'
+
+export const doUpdateBoundingBox = boundingbox => dispatch => {
+    // Build the boundingbox string, which is required
+    // for the HERE Maps API:
+    const bbox = [
+        boundingbox._southWest.lng,
+        boundingbox._southWest.lat,
+        boundingbox._northEast.lng,
+        boundingbox._northEast.lat,
+    ].join(',')
+
+    dispatch(updateBoundingBox(bbox))
+}
+
+const updateBoundingBox = bbox => ({
+    type: UPDATE_BBOX,
+    payload: bbox,
+})
 
 // This function makes the call to the HERE Maps API:
 export const fetchHerePlaces = payload => (dispatch, getState) => {
@@ -87,3 +106,5 @@ export const requestPlacesResults = category => ({
     type: REQUEST_PLACES_RESULTS,
     payload: category,
 })
+
+

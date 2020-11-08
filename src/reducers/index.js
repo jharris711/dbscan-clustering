@@ -4,6 +4,7 @@ import {
     REQUEST_PLACES_RESULTS,
     RECEIVE_PLACES_RESULTS,
     CLEAR,
+    UPDATE_BBOX,
 } from '../actions/actions'
 
 // The initial state object with an empty boundingbox
@@ -66,6 +67,11 @@ const placesControls = (state = initialPlacesState, action) => {
                 places: {},
                 lastCall: Date.now(),
                 lastCompute: Date.now(),
+            }
+        case UPDATE_BBOX:
+            return {
+                ...state,
+                boundingbox: action.payload,
             }
         default:
             return state

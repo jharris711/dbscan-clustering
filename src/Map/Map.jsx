@@ -1,6 +1,9 @@
 import React, { Component } from 'react'
+import PropTypes from 'prop-types'
 import L from 'leaflet'
 import HereTileLayers from './hereTileLayers'
+import { doUpdateBoundingBox } from '../actions/actions'
+import { connect } from 'react-redux'
 
 
 // Define the container styles the map sits in:
@@ -32,9 +35,17 @@ const mapParams = {
 }
 
 class Map extends Component {
+    static propTypes = {
+        lastCall: PropTypes.number,
+        lastCompute: PropTypes.number,
+        dbscanSettings: PropTypes.object,
+        dispatch: PropTypes.func.isRequired,
+        places: PropTypes.object
+    }
 
     // Add everything once component has mounted:
     componentDidMount() {
+        const { dispatch } = this.props
         // The map:
         this.map = L.map('map', mapParams)
 
@@ -65,6 +76,57 @@ class Map extends Component {
             .zoom({position: 'topright'})
             .addTo(this.map)
         //
+
+        // When the map is paned, update the boundingbox
+        // in the redux store:
+        this.map.on('moveend', () => {
+            dispatch(doUpdateBoundingBox(this.map.getBounds()))
+        })
+
+        // And also on load:
+        dispatch(doUpdateBoundingBox(this.map.getBounds()))
+    }
+
+    componentDidUpdate(prevProps) {
+        const { lastCall } = this.props
+        // Is the epoche timestamp later?
+        if (lastCall > prevProps.lastCall) {
+            // If so, then start adding places to the map:
+            this.addPlaces()
+        }
+    }
+
+    addPlaces() {
+        // Clear layers with Leaflet API:
+        placesLayer.clearLayers()
+      
+        // Places will become part of props, but we need to
+        // connect this component to our state in the next step:
+        const { places } = this.props
+        let cnt = 0
+        // Loop through our places:
+        for (const place in places) {
+          // Check for data:
+          if (
+            places[place].hasOwnProperty('data') &&
+            places[place].data.length > 0
+          ) {
+            // Add a Leaflet circle-marker and tooltip for every place:
+            for (const placeObj of places[place].data) {
+              L.circleMarker([placeObj.position[0], placeObj.position[1]], {
+                color: places[place].color,
+                orig_color: places[place].color,
+                radius: 5,
+                id: cnt,
+                weight: 1,
+                opacity: 0.5
+              })
+                .addTo(placesLayer)
+                .bindTooltip(placeObj.title)
+              cnt += 1
+            }
+          }
+        }
     }
 
     render() {
@@ -75,4 +137,13 @@ class Map extends Component {
 }
 
 
-export default Map
+const mapStateToProps = state => {
+    const { places, lastCall } = state.placesControls
+    return {
+        places,
+        lastCall
+    }
+}
+
+
+export default connect(mapStateToProps)(Map)
