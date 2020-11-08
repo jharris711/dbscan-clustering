@@ -6,6 +6,8 @@ export const RECEIVE_PLACES_RESULTS = 'RECEIVE_PLACES_RESULTS'
 export const REQUEST_PLACES_RESULTS = 'REQUEST_PLACES_RESULTS'
 export const CLEAR = 'CLEAR'
 export const UPDATE_BBOX = 'UPDATE_BBOX'
+export const UPDATE_DBSCAN_SETTINGS = 'UPDATE_DBSCAN_SETTINGS'
+export const COMPUTE_DBSCAN = 'COMPUTE_DBSCAN'
 
 export const doUpdateBoundingBox = boundingbox => dispatch => {
     // Build the boundingbox string, which is required
@@ -107,4 +109,11 @@ export const requestPlacesResults = category => ({
     payload: category,
 })
 
+export const computeDbScan = () => ({
+    type: COMPUTE_DBSCAN,
+})
 
+export const updateDbScanSettings = settings => ({
+    type: UPDATE_DBSCAN_SETTINGS,
+    payload: { ...settings }
+})

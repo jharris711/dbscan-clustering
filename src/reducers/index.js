@@ -5,6 +5,8 @@ import {
     RECEIVE_PLACES_RESULTS,
     CLEAR,
     UPDATE_BBOX,
+    UPDATE_DBSCAN_SETTINGS,
+    COMPUTE_DBSCAN,
 } from '../actions/actions'
 
 // The initial state object with an empty boundingbox
@@ -14,6 +16,13 @@ const initialPlacesState = {
     boundingbox: '',
     lastCall: Date.now(),
     places: {},
+    dbscanSettings: {
+        minPoints: 10,
+        maxDistance: 500,
+    },
+    // This lastCompute will help us determine if a new 
+    // computation should be made:
+    lastCompute: 0,
 }
 
 // Switch statement that will reduce the actions depending
@@ -72,6 +81,22 @@ const placesControls = (state = initialPlacesState, action) => {
             return {
                 ...state,
                 boundingbox: action.payload,
+            }
+        // Update the lastCompute key when this action is called:
+        case COMPUTE_DBSCAN:
+            return {
+                ...state,
+                lastCompute: Date.now()
+            }
+        // Update dbscan settings when theses are changed in 
+        // the controller by the user:
+        case UPDATE_DBSCAN_SETTINGS:
+            return {
+                ...state,
+                dbscanSettings: {
+                    ...state.dbscanSettings,
+                    [action.payload.setting]: action.payload.value,
+                }
             }
         default:
             return state
