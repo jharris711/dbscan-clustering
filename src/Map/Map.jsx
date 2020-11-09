@@ -1,11 +1,13 @@
 import React, { Component } from 'react'
-import PropTypes from 'prop-types'
+import { connect } from 'react-redux'
 import L from 'leaflet'
+import PropTypes from 'prop-types'
+import { concave, polygon, multiPoint, featureCollection } from '@turf/turf'
+
 import HereTileLayers from './hereTileLayers'
 import { doUpdateBoundingBox } from '../actions/actions'
-import { connect } from 'react-redux'
 import { makeClusterObjects, prepareGeojson, computeDbScan } from './utils'
-import { concave, polygon, multiPoint, featureCollection } from '@turf/turf'
+
 
 // Define the container styles the map sits in:
 const style = {
@@ -104,11 +106,11 @@ class Map extends Component {
     }
 
     processClusters(clusterData) {
-        // Postprocessing of clusters, happensin utils.js:
+        // Postprocessing of clusters, happens in utils.js:
         const clustersNoiseEdges = makeClusterObjects(clusterData)
 
         // Looping through the processed clusters, we either have to 
-        // computer the concave hull for clusters greater than 3 points.
+        // compute the concave hull for clusters greater than 3 points.
         // For Clusters with 3 points we create polygons and
         // for anything less we want to display them as Multipoints:
         for (const clusterObj in clustersNoiseEdges) {
@@ -196,10 +198,12 @@ class Map extends Component {
 
 
 const mapStateToProps = state => {
-    const { places, lastCall } = state.placesControls
+    const { places, lastCall, lastCompute, dbscanSettings } = state.placesControls
     return {
         places,
-        lastCall
+        lastCall,
+        lastCompute,
+        dbscanSettings
     }
 }
 

@@ -8,8 +8,8 @@ class App extends Component {
     render() {
         return (
             <div>
-                <Controls />
                 <Map />
+                <Controls />
             </div>
         )
     }

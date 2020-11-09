@@ -89,14 +89,14 @@ export const prepareGeojson = (geojson, clusterSize, clusterObj) => {
         }
     }).bindTooltip(
         '<strong>DBScan information:</strong> ' +
-        (!isNaN(clusterObj)
-            ? 'Cluster ' + (parseInt(clusterObj) + 1)
-            : clusterObj) +
-        (!isNaN(clusterObj)
-            ? '<br/> ' +
-            '<strong>Amount of points in cluster:</strong> ' +
-            clusterSize
-            : ''),
+            (!isNaN(clusterObj)
+                ? 'Cluster ' + (parseInt(clusterObj) + 1)
+                : clusterObj) +
+            (!isNaN(clusterObj)
+                ? '<br/> ' +
+                    '<strong>Amount of points in cluster:</strong> ' +
+                    clusterSize
+                : ''),
         {
             permanent: false,
             sticky: true

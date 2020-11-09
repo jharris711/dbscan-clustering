@@ -1,119 +1,158 @@
-const hereAppCode = 'HQnCztY23zh2xiTPCFiTMA'
-const hereAppId = 'jKco7gLGf0WWlvS5n2fl'
+const hereAppCode = '0XXQyxbiCjVU7jN2URXuhg'
+const hereAppId = 'yATlKFDZwdLtjHzyTeCK'
 
-// Create the action types:
 export const RECEIVE_PLACES_RESULTS = 'RECEIVE_PLACES_RESULTS'
 export const REQUEST_PLACES_RESULTS = 'REQUEST_PLACES_RESULTS'
-export const CLEAR = 'CLEAR'
 export const UPDATE_BBOX = 'UPDATE_BBOX'
 export const UPDATE_DBSCAN_SETTINGS = 'UPDATE_DBSCAN_SETTINGS'
 export const COMPUTE_DBSCAN = 'COMPUTE_DBSCAN'
+export const RESULT_HANDLER = 'RESULT_HANDLER'
+export const CLEAR = 'CLEAR'
+export const DISABLE_PLACES = 'DISABLE_PLACES'
 
-export const doUpdateBoundingBox = boundingbox => dispatch => {
-    // Build the boundingbox string, which is required
-    // for the HERE Maps API:
-    const bbox = [
-        boundingbox._southWest.lng,
-        boundingbox._southWest.lat,
-        boundingbox._northEast.lng,
-        boundingbox._northEast.lat,
-    ].join(',')
-
-    dispatch(updateBoundingBox(bbox))
-}
-
-const updateBoundingBox = bbox => ({
-    type: UPDATE_BBOX,
-    payload: bbox,
-})
-
-// This function makes the call to the HERE Maps API:
 export const fetchHerePlaces = payload => (dispatch, getState) => {
-    // This dispatcher makes sure the loading icons spin:
+  const currentPlacesControls = getState().placesControls
+  const { boundingbox } = currentPlacesControls
+
+  let url
+  let params
+
+  if (
+    currentPlacesControls.places.hasOwnProperty(payload.category) &&
+    boundingbox == currentPlacesControls.places[payload.category].boundingbox &&
+    currentPlacesControls.places[payload.category].next
+  ) {
+    url = currentPlacesControls.places[payload.category].next
+  } else {
+    url = new URL('https://places.cit.api.here.com/places/v1/discover/explore')
+    params = {
+      app_id: hereAppId,
+      app_code: hereAppCode,
+      //west longitude, south latitude, east longitude, north latitude.
+      in: boundingbox,
+      size: 20,
+      cat: payload.category
+    }
+  }
+
+  if (url) {
     dispatch(requestPlacesResults({ category: payload.category }))
 
-    // Access the state in the action to retrieve the boundingbox
-    // of the map, which will be reduced in the subsequent step:
-    const { boundingbox } = getState().placesControls
-
-    // For more info on these params, visit:
-    // https://developer.here.com/documentation/places/topics/search-results-ranking.html
-    const url = new URL(
-        'https://places.demo.api.here.com/places/v1/discover/explore'
-    )
-    const params = {
-        app_id: hereAppId,
-        app_code: hereAppCode,
-        // This will come from the Map component:
-        in: boundingbox,
-        // The amount of places:
-        size: 100,
-        // Category clicked/selected by user:
-        cat: payload.category
-    }
-
-    url.search = new URLSearchParams(params)
-
+    if (params) url.search = new URLSearchParams(params)
     return fetch(url)
-        // Return data as JSON:
-        .then(response => response.json())
-        .then(data => 
-            // Once the JSON data is returned, dispatch the parsing
-            // of the data which will include the category and the color:
-            dispatch(
-                processPlacesResponse(
-                    data,
-                    payload.category,
-                    boundingbox,
-                    payload.color
-                )
-            )
+      .then(response => response.json())
+      .then(data =>
+        dispatch(
+          processPlacesResponse(
+            data,
+            payload.category,
+            boundingbox,
+            payload.color
+          )
         )
-        .catch(error => console.error(error))
+      )
+      .catch(error => console.error(error)) //eslint-disable-line
+  }
 }
 
-// Action to clear places:
+export const sendMessage = message => ({
+  type: RESULT_HANDLER,
+  payload: message
+})
+
 export const clear = () => ({
-    type: CLEAR
+  type: CLEAR
 })
 
-const parsePlacesResponse = json => {
-    if (json.results && json.results.items.length > 0) {
-        return json.results.items
-    }
-    return []
+export const doUpdateBoundingBox = boundingbox => dispatch => {
+  const bbox = [
+    boundingbox._southWest.lng,
+    boundingbox._southWest.lat,
+    boundingbox._northEast.lng,
+    boundingbox._northEast.lat
+  ].join(',')
+
+  dispatch(updateBoundingBox(bbox))
 }
 
-const processPlacesResponse = (json, category, bbox, color) => dispatch => {
-    const results = parsePlacesResponse(json)
-
-    // The response should be parsed at this point and ready to be 
-    // dispatched to our reducer:
-    dispatch(
-        receivePlacesResults({
-            data: results,
-            category: category,
-            boundingbox: bbox,
-            color: color,
-        })
-    )
-}
-
-export const receivePlacesResults = places => ({
-    type: RECEIVE_PLACES_RESULTS,
-    payload: places,
+export const disablePlaces = category => ({
+  type: DISABLE_PLACES,
+  payload: category
 })
 
-export const requestPlacesResults = category => ({
-    type: REQUEST_PLACES_RESULTS,
-    payload: category,
+const updateBoundingBox = bbox => ({
+  type: UPDATE_BBOX,
+  payload: bbox
 })
 
 export const computeDbScan = () => ({
-    type: COMPUTE_DBSCAN,
+  type: COMPUTE_DBSCAN
 })
 
 export const updateDbScanSettings = settings => ({
-    type: UPDATE_DBSCAN_SETTINGS,
-    payload: { ...settings }
+  type: UPDATE_DBSCAN_SETTINGS,
+  payload: { ...settings }
+})
+
+const parsePlacesResponse = json => dispatch => {
+  const results = {}
+  let jsonToParse
+  if (json.results) {
+    jsonToParse = json.results
+  } else {
+    jsonToParse = json
+  }
+
+  if (jsonToParse.items.length > 0) {
+    results.items = jsonToParse.items
+  }
+  if (jsonToParse.next) {
+    results.next = jsonToParse.next
+  } else {
+    dispatch(
+      sendMessage({
+        type: 'warning',
+        icon: 'warning',
+        description:
+          'All places fetched in this bounding box. Try and zoom in or pan the map.',
+        title: 'No more places to fetch.'
+      })
+    )
+  }
+
+  return results
+}
+
+const processPlacesResponse = (json, category, bbox, color) => dispatch => {
+  const results = dispatch(parsePlacesResponse(json))
+
+  dispatch(
+    receivePlacesResults({
+      data: results,
+      category: category,
+      boundingbox: bbox,
+      color: color
+    })
+  )
+  if (results.length == 0) {
+    dispatch(
+      sendMessage({
+        type: 'warning',
+        icon: 'warning',
+        description:
+          'No places in your viewport, zoom to another region and try again.',
+        title: 'DBScan settings'
+      })
+    )
+  }
+}
+
+export const receivePlacesResults = places => ({
+  type: RECEIVE_PLACES_RESULTS,
+  payload: places
+})
+
+export const requestPlacesResults = category => ({
+  type: REQUEST_PLACES_RESULTS,
+  payload: category
 })
